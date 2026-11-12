@@ -185,3 +185,13 @@ tr.cancelled td.row-actions { opacity: 1; text-decoration: none; }
 .cr-kind button { flex: 1; }
 .cr-modal { width: 480px; }
 .field textarea { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; resize: vertical; width: 100%; box-sizing: border-box; }
+
+/* Cart: more in the cart than in stock */
+tr.stock-short td { background: #fde8e8; }
+.stock-short-note { font-size: 12px; font-weight: 700; color: #b42318; margin-top: 2px; }
+
+/* Top bar: keep labels on one line; wrap the right side under the nav if the window is narrow */
+.topbar { flex-wrap: wrap; gap: 8px; }
+.nav button { white-space: nowrap; padding: 10px 12px; }
+.topbar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-inline-start: auto; }
+.sync-pill, .scan-pill, .refresh-btn, .update-btn { white-space: nowrap; }

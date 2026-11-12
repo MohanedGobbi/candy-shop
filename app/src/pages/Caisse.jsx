@@ -46,6 +46,23 @@ export default function Caisse({ t, active: pageActive = true }) {
 
   const active = carts.find((c) => c.id === activeId) || carts[0];
 
+  // Current stock per product, to warn when the cart asks for more than exists.
+  const stockOf = useMemo(() => {
+    const m = new Map();
+    for (const p of products) m.set(p.code, Number(p.stock) || 0);
+    return m;
+  }, [products]);
+
+  const warnIfShort = useCallback((code, name, qty, knownStock) => {
+    const stock = knownStock ?? stockOf.get(code);
+    if (stock === undefined || qty <= stock) return false;
+    setMessage({
+      type: "warn",
+      text: t("stock_short").replace("{name}", name).replace("{stock}", stock).replace("{qty}", qty)
+    });
+    return true;
+  }, [stockOf, t]);
+
   const addLine = useCallback((product, qtyDelta = 1) => {
     setMessage(null);
     if (product.price == null && editingPriceFor !== product.code) {
@@ -54,6 +71,9 @@ export default function Caisse({ t, active: pageActive = true }) {
       if (!typed || !Number.isFinite(price) || price < 0) return;
       product = { ...product, price };
     }
+    const cur = carts.find((c) => c.id === activeId);
+    const inCart = cur ? (cur.lines.find((l) => l.code === product.code) || { qty: 0 }).qty : 0;
+    warnIfShort(product.code, product.name, inCart + qtyDelta, product.stock != null ? Number(product.stock) : undefined);
     setCarts((prev) =>
       prev.map((c) => {
         if (c.id !== activeId) return c;
@@ -67,7 +87,7 @@ export default function Caisse({ t, active: pageActive = true }) {
         return { ...c, lines: lines.filter((l) => l.qty > 0) };
       })
     );
-  }, [activeId, editingPriceFor, t]);
+  }, [activeId, editingPriceFor, t, carts, warnIfShort]);
 
   const onScan = useCallback(async (code) => {
     const local = products.find((p) => p.barcode === code || (p.barcodes || []).includes(code));
@@ -86,6 +106,9 @@ export default function Caisse({ t, active: pageActive = true }) {
   }, [products, query]);
 
   function setQty(code, qty) {
+    const line = active.lines.find((l) => l.code === code);
+    if (line && qty > line.qty) warnIfShort(code, line.name, qty);
+    else setMessage(null);
     setCarts((prev) =>
       prev.map((c) => {
         if (c.id !== activeId) return c;
@@ -107,6 +130,11 @@ export default function Caisse({ t, active: pageActive = true }) {
 
   async function confirm() {
     if (active.lines.length === 0) return;
+    const short = active.lines.filter((l) => stockOf.has(l.code) && l.qty > stockOf.get(l.code));
+    if (short.length) {
+      const list = short.map((l) => "• " + l.name + " : " + t("stock_label") + " " + stockOf.get(l.code) + ", " + t("qty") + " " + l.qty).join("\n");
+      if (!window.confirm(t("stock_short_confirm") + "\n\n" + list)) return;
+    }
     if (active.given !== "" && change < 0) {
       setMessage({ type: "warn", text: t("not_enough") });
       return;
@@ -200,9 +228,15 @@ export default function Caisse({ t, active: pageActive = true }) {
             </thead>
             <tbody>
               {active.lines.length === 0 && <tr><td colSpan={5} className="hint">{t("cart_empty")}</td></tr>}
-              {active.lines.map((l) => (
-                <tr key={l.code}>
-                  <td>{l.name}</td>
+              {active.lines.map((l) => {
+                const stock = stockOf.get(l.code);
+                const short = stock !== undefined && l.qty > stock;
+                return (
+                <tr key={l.code} className={short ? "stock-short" : ""}>
+                  <td>
+                    {l.name}
+                    {short && <div className="stock-short-note">{t("stock_label")} : {stock}</div>}
+                  </td>
                   <td>
                     <div className="qty-stepper">
                       <button onClick={() => setQty(l.code, l.qty - 1)}>−</button>
@@ -214,7 +248,8 @@ export default function Caisse({ t, active: pageActive = true }) {
                   <td>{(l.qty * (l.price || 0)).toFixed(2)}</td>
                   <td><button className="btn ghost" onClick={() => removeLine(l.code)}>{t("delete")}</button></td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
