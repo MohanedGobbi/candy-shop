@@ -40,6 +40,7 @@ jobs:
           node scripts/smoke-test.cjs
           node scripts/undo-test.cjs
           node scripts/notes-test.cjs
+          node scripts/alerts-test.mjs
           node scripts/scanner-buffer-test.mjs
           node scripts/apps-script-views-test.cjs
 

@@ -195,3 +195,14 @@ tr.stock-short td { background: #fde8e8; }
 .nav button { white-space: nowrap; padding: 10px 12px; }
 .topbar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-inline-start: auto; }
 .sync-pill, .scan-pill, .refresh-btn, .update-btn { white-space: nowrap; }
+
+/* Alertes */
+.nav-badge { display: inline-block; min-width: 18px; padding: 1px 6px; margin-inline-start: 6px; border-radius: 999px; background: #b42318; color: #fff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
+.al-toolbar { flex-wrap: wrap; gap: 12px; align-items: center; }
+.al-count { display: inline-block; min-width: 18px; padding: 0 6px; margin-inline-start: 4px; border-radius: 999px; background: var(--bg); color: var(--muted); font-size: 12px; line-height: 18px; }
+.al-count.on { background: #fde8e8; color: #b42318; }
+.seg button.active .al-count { background: rgba(255,255,255,.25); color: #fff; }
+.al-threshold { width: 64px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; margin-inline-start: 6px; }
+.al-explain { margin: 4px 0 12px; }
+.al-soon { color: #b42318; font-weight: 700; }
+.al-hidden { padding: 12px 10px 2px; }

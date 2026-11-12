@@ -154,6 +154,7 @@ export default function Caisse({ t, active: pageActive = true }) {
       return [fresh];
     });
     window.api.listProducts().then(setProducts);
+    window.dispatchEvent(new Event("products:reload")); // stock changed: alerts badge, other pages
   }
 
   function addCart() {
