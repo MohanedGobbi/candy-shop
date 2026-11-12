@@ -1,3 +1,4 @@
+import { safeConfirm } from "../safeConfirm.js";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useBarcodeScanner } from "../useBarcodeScanner.js";
 
@@ -58,7 +59,7 @@ export default function Produits({ t }) {
   }
 
   async function deleteProduct(p) {
-    if (!confirm(p.name)) return;
+    if (!safeConfirm(p.name)) return;
     await window.api.deleteProduct(p.code);
     refresh();
   }

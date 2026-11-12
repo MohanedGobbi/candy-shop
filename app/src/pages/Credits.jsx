@@ -1,3 +1,4 @@
+import { safeConfirm } from "../safeConfirm.js";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 // Credit = a customer owes the shop. Debt = the shop owes someone (supplier...).
@@ -70,12 +71,12 @@ export default function Credits({ t }) {
   }
 
   async function settle(note) {
-    if (!confirm(t("cr_settle_confirm").replace("{p}", note.person))) return;
+    if (!safeConfirm(t("cr_settle_confirm").replace("{p}", note.person))) return;
     await pay(note, remaining(note));
   }
 
   async function remove(note) {
-    if (!confirm(t("cr_delete_confirm").replace("{p}", note.person))) return;
+    if (!safeConfirm(t("cr_delete_confirm").replace("{p}", note.person))) return;
     await window.api.deleteNote(note.id);
     setMsg({ type: "ok", text: t("cr_deleted") });
     load();

@@ -1,3 +1,4 @@
+import { safeConfirm } from "../safeConfirm.js";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 // Local date (toISOString is UTC and shifts the day near midnight).
@@ -50,16 +51,16 @@ export default function Historique({ t }) {
   }
 
   async function cancel(s) {
-    if (!confirm(t("cancel_sale") + " ?")) return;
+    if (!safeConfirm(t("cancel_sale") + " ?")) return;
     await window.api.cancelSale(s.id);
     after({ ok: true });
   }
   async function restore(s) {
-    if (!confirm(t("restore_sale") + " ?")) return;
+    if (!safeConfirm(t("restore_sale") + " ?")) return;
     after(await window.api.restoreSale(s.id));
   }
   async function undo(a) {
-    if (!confirm(t("undo_confirm") + "\n\n" + describe(a, t))) return;
+    if (!safeConfirm(t("undo_confirm") + "\n\n" + describe(a, t))) return;
     after(await window.api.undo(a.id));
   }
 

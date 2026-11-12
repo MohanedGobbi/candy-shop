@@ -1,3 +1,4 @@
+import { safeConfirm } from "../safeConfirm.js";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useBarcodeScanner } from "../useBarcodeScanner.js";
 
@@ -133,7 +134,7 @@ export default function Caisse({ t, active: pageActive = true }) {
     const short = active.lines.filter((l) => stockOf.has(l.code) && l.qty > stockOf.get(l.code));
     if (short.length) {
       const list = short.map((l) => "• " + l.name + " : " + t("stock_label") + " " + stockOf.get(l.code) + ", " + t("qty") + " " + l.qty).join("\n");
-      if (!window.confirm(t("stock_short_confirm") + "\n\n" + list)) return;
+      if (!safeConfirm(t("stock_short_confirm") + "\n\n" + list)) return;
     }
     if (active.given !== "" && change < 0) {
       setMessage({ type: "warn", text: t("not_enough") });
