@@ -1,0 +1,14 @@
+node_modules/
+app/dist/
+app/release/
+Installation Candy Shop/
+*.log
+
+# Private / client data - not for a public repo
+*.xlsx
+*.mdb
+pricing.html
+HANDOFF.md
+.impeccable/
+.claude/
+app/.git-unused-empty/

@@ -1,0 +1,52 @@
+# Every push to main builds the Windows installer and publishes it as a
+# GitHub Release. Installed copies of Candy Shop check these releases and
+# update themselves (electron-updater).
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+
+      - name: Tests
+        run: |
+          node scripts/smoke-test.cjs
+          node scripts/undo-test.cjs
+          node scripts/scanner-buffer-test.mjs
+          node scripts/apps-script-views-test.cjs
+
+      # Each run gets a higher version (1.0.<run number>), so the apps see it as new.
+      - name: Set version
+        run: npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+
+      - name: Build and publish
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
