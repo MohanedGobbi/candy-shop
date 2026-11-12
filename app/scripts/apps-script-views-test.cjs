@@ -76,11 +76,30 @@ post([ev("product_upsert", { code: "2", deleted: false, undoOf: "y" })]);
 assert.strictEqual(prod("2").deleted, "");
 assert.strictEqual(prod("2").name, "aaa", "undelete keeps the name");
 
+// Credit / debt notes -> Crédits tab.
+post([ev("note_upsert", { id: "N1", kind: "credit", person: "Ahmed", phone: "0555123456", amount: 1500, note: "biscuits" })]);
+const note = () => sheets["Crédits"].data.find((r) => r[0] === "N1");
+assert.ok(note(), "note appears in Crédits");
+assert.strictEqual(note()[3], "0555123456");
+post([ev("note_payment", { id: "N1", amount: 500 })]);
+post([ev("note_payment", { id: "N1", amount: 1000 })]);
+assert.deepStrictEqual([note()[5], note()[6], note()[8]], [1500, 0, "Soldé"]);
+post([ev("note_payment", { id: "N1", amount: -1000, undoOf: "z" })]);
+assert.deepStrictEqual([note()[6], note()[8]], [1000, "En cours"]);
+post([ev("note_upsert", { id: "N1", kind: "credit", person: "Ahmed B.", phone: "0555123456", amount: 1500, note: "biscuits + jus" })]);
+assert.strictEqual(note()[2], "Ahmed B.");
+assert.strictEqual(note()[5], 500, "edit keeps payments");
+post([ev("note_upsert", { id: "N2", kind: "debt", person: "Fournisseur", amount: 30000, note: "" })]);
+post([ev("note_delete", { id: "N2" })]);
+assert.strictEqual(sheets["Crédits"].data.find((r) => r[0] === "N2")[8], "Supprimé");
+const notesBefore = JSON.stringify(sheets["Crédits"].data.slice(0, 3).map((r) => r.slice(0, 9)));
+
 // Rebuilding from the whole log gives the same tabs.
 const before = JSON.stringify([sheets.Produits.data.slice(0, 3).map((r) => r.slice(0, 11)), sheets.Ventes.data.slice(0, 2)]);
 ctx.rebuildViews();
 const after = JSON.stringify([sheets.Produits.data.slice(0, 3).map((r) => r.slice(0, 11)), sheets.Ventes.data.slice(0, 2)]);
 assert.strictEqual(after, before, "incremental updates match a full rebuild");
+assert.strictEqual(JSON.stringify(sheets["Crédits"].data.slice(0, 3).map((r) => r.slice(0, 9))), notesBefore, "Crédits rebuild matches");
 
 // Pull still works.
 const pulled = ctx.doGet({ parameter: { key: "CHANGE_ME", action: "pull", after: "2" } });

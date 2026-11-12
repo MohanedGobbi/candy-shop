@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld("api", {
   listActivity: (opts) => ipcRenderer.invoke("activity:list", opts),
   undo: (id) => ipcRenderer.invoke("activity:undo", id),
   restoreSale: (id) => ipcRenderer.invoke("sales:restore", id),
+  listNotes: () => ipcRenderer.invoke("notes:list"),
+  upsertNote: (fields) => ipcRenderer.invoke("notes:upsert", fields),
+  payNote: (id, amount) => ipcRenderer.invoke("notes:pay", { id, amount }),
+  deleteNote: (id) => ipcRenderer.invoke("notes:delete", id),
 
   getUpdate: () => ipcRenderer.invoke("update:get"),
   installUpdate: () => ipcRenderer.invoke("update:install"),

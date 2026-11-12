@@ -7,7 +7,8 @@
 //   Events   - the sync log the app reads/writes. Do not edit by hand.
 //   Produits - readable product list (stock, prices...), updated on every sync.
 //   Ventes   - readable list of sales, updated on every sync.
-// Produits and Ventes are views built from Events: editing them by hand
+//   Crédits  - credit / debt notes (who owes what), updated on every sync.
+// Produits, Ventes and Crédits are views built from Events: editing them by hand
 // does not change the app. Menu "Candy Shop > Reconstruire" rebuilds them.
 
 // 1) Put your password here (keep the one you already use!), and the SAME
@@ -26,6 +27,8 @@ var PROD_COLS = [
 ];
 var SALES_TAB = "Ventes";
 var SALES_HEADER = ["Vente", "Date", "Poste", "Articles", "Total", "Statut", "lignes"];
+var NOTES_TAB = "Crédits";
+var NOTES_HEADER = ["id", "Type", "Nom", "Téléphone", "Montant", "Payé", "Reste", "Note", "Statut", "Créé le", "Modifié le"];
 
 function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -109,7 +112,7 @@ function doPost(e) {
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu("Candy Shop")
-    .addItem("Reconstruire Produits et Ventes", "rebuildViews")
+    .addItem("Reconstruire Produits, Ventes et Crédits", "rebuildViews")
     .addToUi();
 }
 
@@ -119,7 +122,7 @@ function rebuildViews() {
   var events = getSheet_();
   var last = events.getLastRow();
   var rows = last >= 2 ? events.getRange(2, 1, last - 1, HEADER.length).getValues() : [];
-  var state = { products: {}, order: [], sales: {}, salesOrder: [] };
+  var state = { products: {}, order: [], sales: {}, salesOrder: [], notes: {}, notesOrder: [] };
   var seen = {};
   for (var i = 0; i < rows.length; i++) {
     if (!rows[i][0] || seen[rows[i][0]]) continue; // skip blanks and duplicate rows
@@ -128,6 +131,7 @@ function rebuildViews() {
   }
   writeAllProducts_(ss, state);
   writeAllSales_(ss, state);
+  writeAllNotes_(ss, state);
 }
 
 function parseEvent_(row) {
@@ -172,6 +176,20 @@ function applyToState_(state, ev) {
       var r = state.sales[p.id];
       if (r && r.cancelled) { r.cancelled = false; moveStock_(state, r.lines, -1); }
       break;
+    case "note_upsert":
+      var n = state.notes[p.id];
+      if (!n) { n = state.notes[p.id] = { id: p.id, paid: 0, createdAt: ev.ts }; state.notesOrder.push(p.id); }
+      if (!n.updatedAt || ev.ts >= n.updatedAt) {
+        for (var nk in p) if (nk !== "undoOf" && nk !== "paid") n[nk] = p[nk];
+        n.updatedAt = ev.ts;
+      }
+      break;
+    case "note_delete":
+      if (state.notes[p.id]) { state.notes[p.id].deleted = true; state.notes[p.id].updatedAt = ev.ts; }
+      break;
+    case "note_payment":
+      if (state.notes[p.id]) state.notes[p.id].paid = round2_((Number(state.notes[p.id].paid) || 0) + (Number(p.amount) || 0));
+      break;
   }
 }
 
@@ -208,6 +226,40 @@ function rowToProduct_(row) {
 function saleRow_(s) {
   var items = (s.lines || []).map(function (l) { return l.name + " x" + l.qty; }).join(", ");
   return [s.id, new Date(s.date), s.pc, items, s.total, s.cancelled ? "Annulée" : "", JSON.stringify(s.lines || [])];
+}
+
+function noteRow_(n) {
+  var amount = Number(n.amount) || 0, paid = Number(n.paid) || 0, rest = round2_(Math.max(0, amount - paid));
+  var status = n.deleted ? "Supprimé" : (amount > 0 && rest <= 0 ? "Soldé" : "En cours");
+  return [n.id, n.kind === "debt" ? "Dette" : "Crédit", n.person || "", n.phone || "", amount, paid, rest, n.note || "", status,
+    n.createdAt ? new Date(n.createdAt) : "", n.updatedAt ? new Date(n.updatedAt) : ""];
+}
+
+function rowToNote_(v) {
+  return {
+    id: String(v[0]), kind: v[1] === "Dette" ? "debt" : "credit", person: v[2], phone: v[3], amount: v[4], paid: Number(v[5]) || 0,
+    note: v[7], deleted: v[8] === "Supprimé",
+    createdAt: v[9] instanceof Date ? v[9].getTime() : v[9], updatedAt: v[10] instanceof Date ? v[10].getTime() : v[10]
+  };
+}
+
+function notesSheet_(ss) {
+  var sh = ss.getSheetByName(NOTES_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(NOTES_TAB);
+    sh.appendRow(NOTES_HEADER);
+    sh.setFrozenRows(1);
+    sh.getRange("D:D").setNumberFormat("@"); // phone numbers keep their leading 0
+    sh.hideColumns(1); // internal id
+  }
+  return sh;
+}
+
+function writeAllNotes_(ss, state) {
+  var sh = notesSheet_(ss);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, NOTES_HEADER.length).clearContent();
+  var rows = state.notesOrder.map(function (id) { return noteRow_(state.notes[id]); });
+  if (rows.length) sh.getRange(2, 1, rows.length, NOTES_HEADER.length).setValues(rows);
 }
 
 function prodSheet_(ss) {
@@ -257,9 +309,17 @@ function updateViews_(rawEvents) {
   if (!ss.getSheetByName(PROD_TAB) || !ss.getSheetByName(SALES_TAB)) return;
   if (!rawEvents.length) return;
   var psh = prodSheet_(ss), ssh = salesSheet_(ss);
+  // Crédits tab is created on demand, so older Sheets get it without a rebuild.
+  var nsh = notesSheet_(ss);
+  var noteRowOf = {};
+  var nLast = nsh.getLastRow();
+  if (nLast > 1) {
+    var nVals = nsh.getRange(2, 1, nLast - 1, NOTES_HEADER.length).getValues();
+    for (var q = 0; q < nVals.length; q++) if (nVals[q][0] !== "") noteRowOf[String(nVals[q][0])] = { row: q + 2, values: nVals[q] };
+  }
 
   // Load only what these events touch.
-  var state = { products: {}, order: [], sales: {}, salesOrder: [] };
+  var state = { products: {}, order: [], sales: {}, salesOrder: [], notes: {}, notesOrder: [] };
   var prodRowOf = {}, saleRowOf = {};
   var pLast = psh.getLastRow();
   if (pLast > 1) {
@@ -273,7 +333,7 @@ function updateViews_(rawEvents) {
   }
 
   var events = rawEvents.map(parseEvent_);
-  var touchedP = {}, touchedS = {};
+  var touchedP = {}, touchedS = {}, touchedN = {};
   function loadProduct(code) {
     code = String(code);
     if (state.products[code] || !prodRowOf[code]) return;
@@ -288,6 +348,12 @@ function updateViews_(rawEvents) {
   }
   events.forEach(function (ev) {
     var p = ev.payload || {};
+    if (ev.type.indexOf("note_") === 0 && p.id) {
+      var nid = String(p.id);
+      if (!state.notes[nid] && noteRowOf[nid]) state.notes[nid] = rowToNote_(noteRowOf[nid].values);
+      touchedN[nid] = true;
+      return;
+    }
     if (p.code !== undefined) { loadProduct(p.code); touchedP[String(p.code)] = true; }
     if (ev.type.indexOf("sale_") === 0 && p.id) {
       loadSale(p.id); touchedS[String(p.id)] = true;
@@ -313,6 +379,15 @@ function updateViews_(rawEvents) {
     if (saleRowOf[id]) ssh.getRange(saleRowOf[id].row, 1, 1, SALES_HEADER.length).setValues([row]);
     else newS.push(row);
   });
+  var newN = [];
+  Object.keys(touchedN).forEach(function (id) {
+    var n = state.notes[id];
+    if (!n) return;
+    var row = noteRow_(n);
+    if (noteRowOf[id]) nsh.getRange(noteRowOf[id].row, 1, 1, NOTES_HEADER.length).setValues([row]);
+    else newN.push(row);
+  });
+  if (newN.length) nsh.getRange(nsh.getLastRow() + 1, 1, newN.length, NOTES_HEADER.length).setValues(newN);
   if (newP.length) psh.getRange(psh.getLastRow() + 1, 1, newP.length, PROD_COLS.length).setValues(newP);
   if (newS.length) ssh.getRange(ssh.getLastRow() + 1, 1, newS.length, SALES_HEADER.length).setValues(newS);
 }

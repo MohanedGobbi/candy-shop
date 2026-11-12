@@ -5,6 +5,7 @@ import Caisse from "./pages/Caisse.jsx";
 import Historique from "./pages/Historique.jsx";
 import Parametres from "./pages/Parametres.jsx";
 import Analytique from "./pages/Analytique.jsx";
+import Credits from "./pages/Credits.jsx";
 
 export default function App() {
   const [settings, setSettings] = useState(null);
@@ -67,6 +68,7 @@ export default function App() {
           <button className={page === "caisse" ? "active" : ""} onClick={() => setPage("caisse")}>{t("nav_caisse")}</button>
           <button className={page === "produits" ? "active" : ""} onClick={() => setPage("produits")}>{t("nav_produits")}</button>
           <button className={page === "historique" ? "active" : ""} onClick={() => setPage("historique")}>{t("nav_historique")}</button>
+          <button className={page === "credits" ? "active" : ""} onClick={() => setPage("credits")}>{t("nav_credits")}</button>
           <button className={page === "analytique" ? "active" : ""} onClick={() => setPage("analytique")}>{t("nav_analytique")}</button>
           <button className={page === "parametres" ? "active" : ""} onClick={() => setPage("parametres")}>{t("nav_parametres")}</button>
         </div>
@@ -101,6 +103,7 @@ export default function App() {
         </div>
         {page === "produits" && <Produits t={t} />}
         {page === "historique" && <Historique t={t} />}
+        {page === "credits" && <Credits t={t} />}
         {page === "analytique" && <Analytique t={t} active />}
         {page === "parametres" && <Parametres t={t} settings={settings} saveSettings={saveSettings} />}
       </div>

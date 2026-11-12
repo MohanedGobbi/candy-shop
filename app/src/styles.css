@@ -150,3 +150,38 @@ tr.cancelled td.row-actions { opacity: 1; text-decoration: none; }
 .act-tag.sale_cancel, .act-tag.product_delete { background: #fde8e8; color: #b42318; }
 .act-tag.undo { background: var(--warn-soft); color: var(--warn); }
 .update-btn { padding: 6px 12px; }
+
+/* Credits / debts */
+.cr-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.cr-credit-text { color: var(--accent); }
+.cr-debt-text { color: #b42318; }
+.cr-toolbar { flex-wrap: wrap; gap: 10px; align-items: center; }
+.cr-toolbar input[type=text] { flex: 1 1 220px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.cr-check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.cr-empty { text-align: center; padding: 32px; }
+.cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.cr-card { display: flex; flex-direction: column; gap: 8px; border-top: 4px solid var(--accent); }
+.cr-card.debt { border-top-color: #b42318; }
+.cr-card.settled { opacity: .6; }
+.cr-card-top { display: flex; align-items: center; gap: 6px; }
+.cr-date { margin-inline-start: auto; font-size: 12px; color: var(--muted); }
+.cr-tag { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+.cr-tag.credit { background: var(--accent-soft); color: var(--accent); }
+.cr-tag.debt { background: #fde8e8; color: #b42318; }
+.cr-tag.settled { background: var(--bg); color: var(--muted); }
+.cr-person { font-size: 18px; font-weight: 700; }
+.cr-phone { font-size: 13px; color: var(--muted); text-align: start; }
+.cr-note { white-space: pre-wrap; background: #fffbea; border-radius: 8px; padding: 8px 10px; font-size: 14px; line-height: 1.45; max-height: 160px; overflow: auto; }
+.cr-amounts { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: auto; }
+.cr-small { font-size: 12px; color: var(--muted); }
+.cr-remaining { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cr-card.debt .cr-remaining { color: #b42318; }
+.cr-card.credit .cr-remaining { color: var(--accent); }
+.cr-bar { height: 6px; border-radius: 3px; background: var(--bg); overflow: hidden; }
+.cr-bar > div { height: 100%; background: var(--accent); }
+.cr-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cr-actions .btn { padding: 6px 10px; font-size: 13px; }
+.cr-kind { margin-bottom: 12px; display: flex; }
+.cr-kind button { flex: 1; }
+.cr-modal { width: 480px; }
+.field textarea { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; resize: vertical; width: 100%; box-sizing: border-box; }

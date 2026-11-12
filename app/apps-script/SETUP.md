@@ -52,14 +52,14 @@ Après un changement dans `Code.gs`, il faut **Déployer → Gérer les
 déploiements → crayon (modifier) → Nouvelle version → Déployer** pour que
 le changement prenne effet. L'URL reste la même.
 
-## Onglets lisibles : Produits et Ventes
+## Onglets lisibles : Produits, Ventes et Crédits
 
 L'onglet **Events** est le journal technique de la synchronisation (ne pas le modifier).
-Le script tient aussi à jour deux onglets lisibles, **Produits** et **Ventes**, à chaque
+Le script tient aussi à jour des onglets lisibles, **Produits**, **Ventes** et **Crédits** (crédits clients / dettes), à chaque
 synchronisation.
 
 La première fois (ou si ces onglets semblent faux) : rechargez la feuille, puis menu
-**Candy Shop → Reconstruire Produits et Ventes**. Google demande une autorisation la
+**Candy Shop → Reconstruire Produits, Ventes et Crédits**. Google demande une autorisation la
 première fois : acceptez. Modifier ces onglets à la main ne change rien dans le logiciel ;
 faites les changements dans le logiciel.
 

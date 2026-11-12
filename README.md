@@ -11,7 +11,16 @@ Download `Candy Shop Setup x.y.z.exe` from the latest
 [release](https://github.com/MohanedGobbi/candy-shop/releases/latest) and run it.
 Installed copies update themselves from new releases.
 
-Google Sheet setup: `app/apps-script/SETUP.md`.
+## Google Sheet
+
+The two PCs sync through a Google Sheet with a small Apps Script web app.
+
+- Script to paste into the Sheet (Extensions > Apps Script): [app/apps-script/Code.gs](app/apps-script/Code.gs)
+- Step-by-step setup (French): [app/apps-script/SETUP.md](app/apps-script/SETUP.md)
+
+The sync link and key are **not** in this repository on purpose: anyone who has
+both can read and change the shop's data. They are in each PC's
+Paramètres page and in the local install folder's `LISEZ-MOI.txt`.
 
 ## Develop
 

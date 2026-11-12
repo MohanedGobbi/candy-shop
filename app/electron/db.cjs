@@ -18,11 +18,13 @@ class Store {
       products: path.join(this.dir, "products.json"),
       sales: path.join(this.dir, "sales.json"),
       events: path.join(this.dir, "events.json"),
+      notes: path.join(this.dir, "notes.json"),
       settings: path.join(this.dir, "settings.json")
     };
     this.products = this._load("products", {});
     this.sales = this._load("sales", []);
     this.events = this._load("events", []);
+    this.notes = this._load("notes", {}); // credit / debt notes, by id
     this.settings = this._load("settings", {
       pcId: "PC-" + uid().slice(0, 6),
       pcName: "",
@@ -113,6 +115,10 @@ class Store {
       const before = this.products[p.code];
       ev.prev = before ? { ...before } : null;
     }
+    if ((ev.type === "note_upsert" || ev.type === "note_delete") && ev.prev === undefined) {
+      const before = this.notes[p.id];
+      ev.prev = before ? { ...before } : null;
+    }
     switch (ev.type) {
       case "product_upsert": {
         const existing = this.products[p.code] || {};
@@ -164,6 +170,34 @@ class Store {
           }
           this._save("sales");
           this._save("products");
+        }
+        break;
+      }
+      case "note_upsert": {
+        // Text fields: last-write-wins. "paid" is never set here, only by payments.
+        const existing = this.notes[p.id] || { paid: 0, createdAt: ev.ts, pc: ev.pc };
+        if (!existing.updatedAt || ev.ts >= existing.updatedAt) {
+          const { paid, ...fields } = p;
+          this.notes[p.id] = { ...existing, ...fields, updatedAt: ev.ts };
+        }
+        this._save("notes");
+        break;
+      }
+      case "note_delete": {
+        if (this.notes[p.id]) {
+          this.notes[p.id].deleted = true;
+          this.notes[p.id].updatedAt = ev.ts;
+          this._save("notes");
+        }
+        break;
+      }
+      case "note_payment": {
+        // A delta, like stock: two PCs taking payments at once both count.
+        const n = this.notes[p.id];
+        if (n) {
+          n.paid = round2((n.paid || 0) + (Number(p.amount) || 0));
+          n.lastPaymentAt = ev.ts;
+          this._save("notes");
         }
         break;
       }
@@ -223,6 +257,14 @@ class Store {
       }
       case "sale_restore": return "is_undo";
       case "stock_adjust": return this.products[p.code] ? null : "missing";
+      case "note_payment": return this.notes[p.id] ? null : "missing";
+      case "note_upsert":
+      case "note_delete": {
+        if (ev.prev === undefined) return "no_snapshot";
+        const idx = this.events.indexOf(ev);
+        const later = this.events.some((e, i) => i > idx && (e.type === "note_upsert" || e.type === "note_delete") && e.payload && e.payload.id === p.id);
+        return later ? "changed_since" : null;
+      }
       case "product_upsert":
       case "product_delete": {
         if (ev.prev === undefined) return "no_snapshot";
@@ -235,6 +277,32 @@ class Store {
       }
     }
     return "unknown";
+  }
+
+  // ---- credit / debt notes ----
+  listNotes() {
+    return Object.entries(this.notes)
+      .filter(([, n]) => !n.deleted)
+      .map(([id, n]) => ({ id, ...n }));
+  }
+
+  upsertNote(fields) {
+    const id = fields.id || uid();
+    const { paid, createdAt, updatedAt, lastPaymentAt, pc, deleted, ...clean } = fields;
+    const ev = this.appendEvent("note_upsert", { ...clean, id });
+    this._applyLocalOnly(ev);
+    return { id, ...this.notes[id] };
+  }
+
+  addNotePayment(id, amount) {
+    const ev = this.appendEvent("note_payment", { id, amount: Number(amount) || 0 });
+    this._applyLocalOnly(ev);
+    return { id, ...this.notes[id] };
+  }
+
+  deleteNote(id) {
+    const ev = this.appendEvent("note_delete", { id });
+    this._applyLocalOnly(ev);
   }
 
   // Undo the latest cancellation of a sale (the "Restaurer" button).
@@ -258,6 +326,10 @@ class Store {
         id: ev.id, ts: ev.ts, pc: ev.pc, type: ev.type,
         productName: p.code ? (p.name || this._productName(p.code)) : null,
         delta: p.delta, reason: p.reason, sale,
+        note: ev.type.startsWith("note_") ? (() => {
+          const n = this.notes[p.id] || {};
+          return { person: p.person || n.person || "", kind: p.kind || n.kind, amount: ev.type === "note_payment" ? p.amount : (p.amount ?? n.amount) };
+        })() : null,
         isUndo: !!p.undoOf || ev.type === "sale_restore",
         undone: !!ev.undoneBy,
         blocker: this._undoBlocker(ev)
@@ -279,6 +351,18 @@ class Store {
       case "stock_adjust": type = "stock_adjust"; payload = { code: p.code, delta: -p.delta, reason: "annulation" }; break;
       case "product_delete":
         type = "product_upsert"; payload = { code: p.code, deleted: false }; break;
+      case "note_payment":
+        type = "note_payment"; payload = { id: p.id, amount: -(Number(p.amount) || 0) }; break;
+      case "note_delete":
+        type = "note_upsert"; payload = { id: p.id, deleted: false }; break;
+      case "note_upsert": {
+        if (ev.prev === null) { type = "note_delete"; payload = { id: p.id }; break; }
+        const restore = { ...ev.prev };
+        for (const k of Object.keys(p)) if (!(k in restore)) restore[k] = null;
+        delete restore.updatedAt; delete restore.paid; delete restore.lastPaymentAt;
+        type = "note_upsert"; payload = restore;
+        break;
+      }
       case "product_upsert": {
         if (ev.prev === null) { type = "product_delete"; payload = { code: p.code }; break; }
         // Put back every field as it was; fields the edit introduced are cleared.

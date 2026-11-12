@@ -159,6 +159,10 @@ export default function Historique({ t }) {
 }
 
 function details(a, t) {
+  if (a.note) {
+    const amt = a.note.amount != null && a.note.amount !== "" ? " — " + fmt(a.note.amount) : "";
+    return a.note.person + amt;
+  }
   if (a.sale) {
     const items = a.sale.lines.map((l) => `${l.name} x${l.qty}`).join(", ");
     return `${items} — ${fmt(a.sale.total)}`;

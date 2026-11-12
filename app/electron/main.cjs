@@ -117,3 +117,7 @@ ipcMain.handle("sync:now", () => syncOnce());
 ipcMain.handle("activity:list", (_e, opts) => store.listActivity(opts || {}));
 ipcMain.handle("activity:undo", (_e, id) => store.undo(id));
 ipcMain.handle("sales:restore", (_e, id) => store.restoreSale(id));
+ipcMain.handle("notes:list", () => store.listNotes());
+ipcMain.handle("notes:upsert", (_e, fields) => store.upsertNote(fields));
+ipcMain.handle("notes:pay", (_e, { id, amount }) => store.addNotePayment(id, amount));
+ipcMain.handle("notes:delete", (_e, id) => store.deleteNote(id));
