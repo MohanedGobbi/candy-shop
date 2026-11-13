@@ -48,6 +48,24 @@ export default function Analytique({ t, active }) {
 
   const range = useMemo(() => rangeFor(preset, from, to), [preset, from, to]);
 
+  // Money in the safe at the start of the day, saved per day on this PC.
+  const [settings, setSettings] = useState(null);
+  const [openingDraft, setOpeningDraft] = useState("");
+  useEffect(() => { window.api.getSettings().then(setSettings); }, []);
+  const singleDay = range.end - range.start === DAY ? ymd(new Date(range.start)) : null;
+  const savedOpening = singleDay && settings && settings.openingCash ? settings.openingCash[singleDay] : undefined;
+  useEffect(() => { setOpeningDraft(savedOpening != null ? String(savedOpening) : ""); }, [singleDay, savedOpening]);
+
+  async function saveOpening() {
+    if (!singleDay || !settings) return;
+    const v = openingDraft.trim();
+    const n = Number(v);
+    const map = { ...(settings.openingCash || {}) };
+    if (v === "" || !Number.isFinite(n) || n < 0) delete map[singleDay];
+    else map[singleDay] = Math.round(n * 100) / 100;
+    setSettings(await window.api.saveSettings({ openingCash: map }));
+  }
+
   useEffect(() => {
     let alive = true;
     function load() {
@@ -129,9 +147,11 @@ export default function Analytique({ t, active }) {
       avg: valid.length ? revenue / valid.length : 0,
       margin: costKnownRevenue ? costKnownRevenue - cost : null,
       marginCoverage: revenue ? costKnownRevenue / revenue : 0,
-      top, series, mode
+      top, series, mode,
+      // This PC's takings: its safe gets only the cash it took in.
+      thisPcRevenue: sales.filter((s) => !s.cancelled && settings && s.pc === settings.pcId).reduce((a, s) => a + s.total, 0)
     };
-  }, [sales, products, pc, range.start, range.end]);
+  }, [sales, products, pc, range.start, range.end, settings]);
 
   const max = Math.max(1, ...r.series.map((x) => x.v));
 
@@ -174,6 +194,28 @@ export default function Analytique({ t, active }) {
         />
         <Kpi label={t("an_cancelled")} value={r.cancelled} />
       </div>
+
+      {singleDay && (
+        <div className="card an-safe">
+          <div className="field">
+            <label>{t("an_opening_cash")}</label>
+            <input
+              type="number"
+              min="0"
+              value={openingDraft}
+              placeholder="0"
+              onChange={(e) => setOpeningDraft(e.target.value)}
+              onBlur={saveOpening}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveOpening(); } }}
+            />
+          </div>
+          <div className="an-safe-sum">
+            <span>{t("an_opening_cash")} {fmt(savedOpening || 0)}</span>
+            <span>+ {t("an_revenue")}{pcs.length > 1 ? " (" + t("an_this_pc") + ")" : ""} {fmt(r.thisPcRevenue)}</span>
+            <strong>= {t("an_expected_cash")} {fmt((savedOpening || 0) + r.thisPcRevenue)}</strong>
+          </div>
+        </div>
+      )}
 
       <div className="an-grid">
         <div className="card">

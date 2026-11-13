@@ -1,5 +1,5 @@
 "use strict";
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const { Store } = require("./db.cjs");
 const { runSync } = require("./sync.cjs");
@@ -24,6 +24,15 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false
+    }
+  });
+
+  // F11 confirms the sale on the Caisse page. Catch it here so Electron's
+  // default menu does not use it for fullscreen.
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.type === "keyDown" && input.key === "F11") {
+      event.preventDefault();
+      mainWindow.webContents.send("key:f11");
     }
   });
 
@@ -70,6 +79,9 @@ function setupAutoUpdate() {
 }
 ipcMain.handle("update:get", () => updateState);
 ipcMain.handle("app:version", () => app.getVersion());
+ipcMain.handle("app:beep", () => {
+  if (shell && typeof shell.beep === "function") shell.beep();
+});
 
 app.whenReady().then(() => {
   store = new Store(app.getPath("userData"));

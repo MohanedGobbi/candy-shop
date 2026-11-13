@@ -130,7 +130,12 @@ export const DICT = {
     an_by_month: "Ventes par mois",
     an_top: "Meilleurs produits",
     an_empty: "Aucune vente sur cette période",
+    an_opening_cash: "Fond de caisse (début de journée)",
+    an_expected_cash: "Attendu dans la caisse",
+    an_this_pc: "ce PC",
+    enter_next_field: "Entrée = colonne suivante, Entrée sur la dernière = enregistrer",
     scan_rejected: "Scan refusé",
+    product_not_found: "Produit non trouvé",
 
     // Caisse
     cart_tab: "Panier",
@@ -325,7 +330,12 @@ export const DICT = {
     an_by_month: "المبيعات حسب الشهر",
     an_top: "أفضل المنتجات",
     an_empty: "لا توجد مبيعات في هذه الفترة",
+    an_opening_cash: "المبلغ في الصندوق (بداية اليوم)",
+    an_expected_cash: "المتوقع في الصندوق",
+    an_this_pc: "هذا الجهاز",
+    enter_next_field: "Entrée = الخانة التالية، Entrée في الأخيرة = حفظ",
     scan_rejected: "مسح مرفوض",
+    product_not_found: "المنتج غير موجود",
 
     cart_tab: "سلة",
     cart_new: "+ جديدة",

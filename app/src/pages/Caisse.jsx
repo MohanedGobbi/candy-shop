@@ -1,5 +1,6 @@
 import { safeConfirm } from "../safeConfirm.js";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { playErrorSound } from "../sound.js";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useBarcodeScanner } from "../useBarcodeScanner.js";
 
 function newCart(label) {
@@ -28,7 +29,15 @@ export default function Caisse({ t, active: pageActive = true }) {
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState([]);
   const [message, setMessage] = useState(null);
+  const [scanError, setScanError] = useState(false);
+  const scanErrorTimer = useRef(null);
   const [editingPriceFor, setEditingPriceFor] = useState(null); // code awaiting a manual price
+
+  useEffect(() => {
+    return () => {
+      if (scanErrorTimer.current) clearTimeout(scanErrorTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     const load = () => window.api.listProducts().then(setProducts);
@@ -66,6 +75,7 @@ export default function Caisse({ t, active: pageActive = true }) {
 
   const addLine = useCallback((product, qtyDelta = 1) => {
     setMessage(null);
+    setScanError(false);
     if (product.price == null && editingPriceFor !== product.code) {
       const typed = prompt(t("price") + " - " + product.name);
       const price = Number(typed);
@@ -90,13 +100,21 @@ export default function Caisse({ t, active: pageActive = true }) {
     );
   }, [activeId, editingPriceFor, t, carts, warnIfShort]);
 
+  const triggerScanError = useCallback((code) => {
+    playErrorSound();
+    setScanError(true);
+    if (scanErrorTimer.current) clearTimeout(scanErrorTimer.current);
+    scanErrorTimer.current = setTimeout(() => setScanError(false), 3000);
+    setMessage({ type: "error", text: "❌ " + t("product_not_found") + " : " + code });
+  }, [t]);
+
   const onScan = useCallback(async (code) => {
     const local = products.find((p) => p.barcode === code || (p.barcodes || []).includes(code));
     if (local) { addLine(local, 1); return; }
     const fresh = await window.api.findByBarcode(code);
     if (fresh) { addLine(fresh, 1); return; }
-    setMessage({ type: "warn", text: code + " — ?" });
-  }, [products, addLine]);
+    triggerScanError(code);
+  }, [products, addLine, triggerScanError]);
 
   useBarcodeScanner(onScan, pageActive);
 
@@ -105,6 +123,32 @@ export default function Caisse({ t, active: pageActive = true }) {
     if (q.length < 2) return [];
     return products.filter((p) => (p.name || "").toLowerCase().includes(q)).slice(0, 8);
   }, [products, query]);
+
+  const handleQueryKeyDown = async (e) => {
+    if (e.key === "Enter" || e.code === "NumpadEnter") {
+      const q = query.trim();
+      if (!q) return;
+      e.preventDefault();
+      const local = products.find((p) => p.barcode === q || (p.barcodes || []).includes(q) || (p.name || "").toLowerCase() === q.toLowerCase());
+      if (local) {
+        addLine(local, 1);
+        setQuery("");
+        return;
+      }
+      const fresh = await window.api.findByBarcode(q);
+      if (fresh) {
+        addLine(fresh, 1);
+        setQuery("");
+        return;
+      }
+      if (filteredSearch.length === 1) {
+        addLine(filteredSearch[0], 1);
+        setQuery("");
+        return;
+      }
+      triggerScanError(q);
+    }
+  };
 
   function setQty(code, qty) {
     const line = active.lines.find((l) => l.code === code);
@@ -158,6 +202,18 @@ export default function Caisse({ t, active: pageActive = true }) {
     window.dispatchEvent(new Event("products:reload")); // stock changed: alerts badge, other pages
   }
 
+  // F11 = confirm the sale (sent by the main process; keydown as a fallback in the browser).
+  const confirmRef = React.useRef(confirm);
+  confirmRef.current = confirm;
+  useEffect(() => {
+    if (!pageActive) return;
+    const run = () => confirmRef.current();
+    const unsub = window.api.onF11 ? window.api.onF11(run) : null;
+    const onKey = (e) => { if (e.key === "F11" && !unsub) { e.preventDefault(); run(); } };
+    window.addEventListener("keydown", onKey);
+    return () => { if (unsub) unsub(); window.removeEventListener("keydown", onKey); };
+  }, [pageActive]);
+
   function addCart() {
     const n = newCart(String(carts.length + 1));
     setCarts((prev) => [...prev, n]);
@@ -181,7 +237,7 @@ export default function Caisse({ t, active: pageActive = true }) {
 
   return (
     <div>
-      {message && <div className={"banner " + (message.type === "ok" ? "ok" : "warn")}>{message.text}</div>}
+      {message && <div className={"banner " + (message.type === "ok" ? "ok" : message.type === "error" ? "error" : "warn")}>{message.text}</div>}
 
       <div className="tabs">
         {carts.map((c) => (
@@ -202,10 +258,21 @@ export default function Caisse({ t, active: pageActive = true }) {
           <div className="toolbar" style={{ position: "relative" }}>
             <input
               type="text"
+              className={scanError ? "scan-input-error" : ""}
               placeholder={t("scan_or_search")}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (scanError) setScanError(false);
+                if (message && message.type === "error") setMessage(null);
+              }}
+              onKeyDown={handleQueryKeyDown}
             />
+            {scanError && (
+              <span className="scan-error-badge">
+                ⚠️ {t("product_not_found")}
+              </span>
+            )}
           </div>
           {filteredSearch.length > 0 && (
             <div className="card" style={{ marginBottom: 10 }}>
@@ -276,7 +343,7 @@ export default function Caisse({ t, active: pageActive = true }) {
             </div>
           </div>
           <button className="btn" style={{ width: "100%" }} disabled={active.lines.length === 0} onClick={confirm}>
-            {t("confirm_sale")}
+            {t("confirm_sale")} (F11)
           </button>
           <div style={{ marginTop: 10 }}>
             <button className="btn ghost" onClick={() => deleteCart(activeId)}>{t("cart_delete")}</button>

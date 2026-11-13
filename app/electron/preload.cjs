@@ -26,10 +26,17 @@ contextBridge.exposeInMainWorld("api", {
   getUpdate: () => ipcRenderer.invoke("update:get"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
   appVersion: () => ipcRenderer.invoke("app:version"),
+  beep: () => ipcRenderer.invoke("app:beep"),
   onUpdate: (cb) => {
     const h = (_e, s) => cb(s);
     ipcRenderer.on("update:status", h);
     return () => ipcRenderer.removeListener("update:status", h);
+  },
+
+  onF11: (cb) => {
+    const h = () => cb();
+    ipcRenderer.on("key:f11", h);
+    return () => ipcRenderer.removeListener("key:f11", h);
   },
 
   syncNow: () => ipcRenderer.invoke("sync:now"),

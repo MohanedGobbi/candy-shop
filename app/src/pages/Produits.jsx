@@ -176,47 +176,55 @@ function numOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+// Columns of the product form, in the order Enter walks through them.
+const FIELDS = [
+  { k: "name", label: "name", required: true, wide: true },
+  { k: "stock", label: "stock", required: true, type: "number" },
+  { k: "price", label: "price", type: "number" },
+  { k: "cost", label: "cost", type: "number" },
+  { k: "barcode", label: "barcode", wide: true },
+  { k: "category", label: "category" },
+  { k: "unit", label: "unit" },
+  { k: "minStock", label: "min_stock", type: "number" }
+];
+
 function ProductModal({ t, mode, data, onCancel, onSave }) {
   const [form, setForm] = useState(data);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const refs = React.useRef([]);
+
+  // Enter goes to the next column; on the last one it saves.
+  function onKeyDown(i) {
+    return (e) => {
+      if (e.key !== "Enter" && e.code !== "NumpadEnter") return;
+      e.preventDefault();
+      const next = refs.current[i + 1];
+      if (next) { next.focus(); next.select(); }
+      else onSave(form);
+    };
+  }
 
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className="modal">
+      <div className="modal modal-wide">
         <h2>{mode === "add" ? t("add_product") : t("edit_product")}</h2>
 
-        <div className="field required">
-          <label>{t("name")}</label>
-          <input autoFocus value={form.name} onChange={set("name")} />
+        <div className="form-row">
+          {FIELDS.map((f, i) => (
+            <div key={f.k} className={"field" + (f.required ? " required" : "") + (f.wide ? " wide" : "")}>
+              <label>{t(f.label)}</label>
+              <input
+                ref={(el) => (refs.current[i] = el)}
+                autoFocus={i === 0}
+                type={f.type || "text"}
+                value={form[f.k]}
+                onChange={set(f.k)}
+                onKeyDown={onKeyDown(i)}
+              />
+            </div>
+          ))}
         </div>
-        <div className="field required">
-          <label>{t("stock")}</label>
-          <input type="number" value={form.stock} onChange={set("stock")} />
-        </div>
-        <div className="field">
-          <label>{t("barcode")}</label>
-          <input value={form.barcode} onChange={set("barcode")} />
-        </div>
-        <div className="field">
-          <label>{t("category")}</label>
-          <input value={form.category} onChange={set("category")} />
-        </div>
-        <div className="field">
-          <label>{t("price")}</label>
-          <input type="number" value={form.price} onChange={set("price")} />
-        </div>
-        <div className="field">
-          <label>{t("cost")}</label>
-          <input type="number" value={form.cost} onChange={set("cost")} />
-        </div>
-        <div className="field">
-          <label>{t("unit")}</label>
-          <input value={form.unit} onChange={set("unit")} />
-        </div>
-        <div className="field">
-          <label>{t("min_stock")}</label>
-          <input type="number" value={form.minStock} onChange={set("minStock")} />
-        </div>
+        <div className="hint">{t("enter_next_field")}</div>
 
         <div className="modal-actions">
           <button className="btn ghost" onClick={onCancel}>{t("cancel")}</button>
