@@ -413,14 +413,25 @@ class Store {
   }
 
   findByBarcode(code) {
-    return this.listProducts().find(
-      (p) => p.barcode === code || (p.barcodes || []).includes(code)
-    );
+    return findBarcodeIn(this.listProducts(), code);
   }
 
   salesForDay(dayStartMs, dayEndMs) {
     return this.sales.filter((s) => s.date >= dayStartMs && s.date < dayEndMs);
   }
+}
+
+// Barcodes are compared without spaces, case or leading zeros
+// (the same product can read as EAN-13 "0123..." or UPC-A "123...").
+function normBarcode(b) {
+  return String(b == null ? "" : b).replace(/\s+/g, "").toUpperCase().replace(/^0+(?=.)/, "");
+}
+function findBarcodeIn(products, code) {
+  const exact = products.find((p) => p.barcode === code || (p.barcodes || []).includes(code));
+  if (exact) return exact;
+  const n = normBarcode(code);
+  if (!n) return undefined;
+  return products.find((p) => normBarcode(p.barcode) === n || (p.barcodes || []).some((b) => normBarcode(b) === n));
 }
 
 function round2(n) {
@@ -436,4 +447,4 @@ function nextCode(products) {
   return String(max + 1);
 }
 
-module.exports = { Store };
+module.exports = { Store, normBarcode, findBarcodeIn };

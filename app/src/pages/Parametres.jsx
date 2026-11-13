@@ -65,10 +65,10 @@ export default function Parametres({ t, settings, saveSettings, appVersion, onOp
 
       <hr />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span className="hint">Candy Shop {appVersion ? `v${appVersion}` : ""}</span>
+        <span className="hint">Mouza Shop {appVersion ? `v${appVersion}` : ""}</span>
         {onOpenWhatsNew && (
           <button className="btn ghost" onClick={onOpenWhatsNew}>
-            🎉 {t("whats_new_button")}
+            {t("whats_new_button")}
           </button>
         )}
       </div>

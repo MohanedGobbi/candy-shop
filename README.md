@@ -1,4 +1,4 @@
-# Candy Shop
+# Mouza Shop
 
 Register and stock software for a small shop: checkout with barcode scanner,
 products, sales history with undo, analytics, French / Arabic. Two PCs share
@@ -7,7 +7,7 @@ their data through a Google Sheet (Apps Script web app). Runs on Windows 7 and 1
 
 ## Install
 
-Download `Candy Shop Setup x.y.z.exe` from the latest
+Download `Mouza Shop Setup x.y.z.exe` from the latest
 [release](https://github.com/MohanedGobbi/candy-shop/releases/latest) and run it.
 Installed copies update themselves from new releases.
 

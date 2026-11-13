@@ -32,6 +32,7 @@ export default function Produits({ t }) {
     if (modal) return; // modal has its own field, ignore global scans while open
     const existing = await window.api.findByBarcode(code);
     if (existing) {
+      setQuery("");
       setBanner({ type: "ok", text: `${t("scanned_existing")}: ${existing.name}` });
       setModal({ mode: "edit", data: toForm(existing) });
     } else {
@@ -96,6 +97,14 @@ export default function Produits({ t }) {
           placeholder={t("search_products")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={async (e) => {
+            // A barcode typed (or scanned too slowly to count as a scan) + Enter opens that product.
+            if (e.key !== "Enter" && e.code !== "NumpadEnter") return;
+            const q = query.trim();
+            if (!q) return;
+            const p = await window.api.findByBarcode(q);
+            if (p) { e.preventDefault(); setQuery(""); setBanner({ type: "ok", text: t("scanned_existing") + ": " + p.name }); setModal({ mode: "edit", data: toForm(p) }); }
+          }}
         />
         <button className="btn" onClick={() => setModal({ mode: "add", data: { ...BLANK } })}>{t("add_product")}</button>
       </div>

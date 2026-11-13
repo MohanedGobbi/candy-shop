@@ -4,9 +4,9 @@ const path = require("path");
 const { Store } = require("./db.cjs");
 const { runSync } = require("./sync.cjs");
 
-// Keep the data folder from before the rename to "Candy Shop", so existing
+// Keep the data folder from before the renames (Candy Shop, now Mouza Shop), so existing
 // products, sales and settings stay where they are.
-app.setName("Candy Shop");
+app.setName("Mouza Shop");
 app.setPath("userData", path.join(app.getPath("appData"), "Magasin"));
 if (process.platform === "win32") app.setAppUserModelId("com.magasin.app");
 
@@ -18,7 +18,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "Candy Shop",
+    title: "Mouza Shop",
     icon: path.join(__dirname, "icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),

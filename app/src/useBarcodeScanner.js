@@ -22,6 +22,14 @@ function clearControlledInput(el, removeChars) {
   }
 }
 
+function eventTime(e) {
+  try {
+    const t = performance.timeOrigin + e.timeStamp;
+    if (Number.isFinite(t) && Math.abs(t - Date.now()) < 5000) return t;
+  } catch {}
+  return Date.now();
+}
+
 // Broadcast what the scanner sent so the top bar can show it (diagnostics).
 function report(info) {
   try {
@@ -68,7 +76,10 @@ export function useBarcodeScanner(onScan, enabled = true) {
     }
 
     function handleKeyDown(e) {
-      const now = Date.now();
+      // Use when the key was actually pressed, not when we got to handle it:
+      // a page busy redrawing (e.g. the product list filtering on every
+      // scanned character) delays handling and would split one scan in two.
+      const now = eventTime(e);
 
       if (e.key === "Enter" || e.key === "Tab" || e.code === "NumpadEnter") {
         finish(now, e);

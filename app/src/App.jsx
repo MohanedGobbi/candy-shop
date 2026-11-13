@@ -158,7 +158,7 @@ export default function App() {
             onClick={() => setWhatsNewOpen(true)}
             title={t("whats_new_button")}
           >
-            ✨ {appVersion ? `v${appVersion}` : t("whats_new_button")}
+            {appVersion ? `v${appVersion}` : t("whats_new_button")}
           </button>
           <div className="lang-switch">
             <button className={lang === "fr" ? "active" : ""} onClick={() => saveSettings({ lang: "fr" })}>FR</button>

@@ -19,7 +19,6 @@ export default function WhatsNewModal({ t, lang, version, onClose, customNotes }
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal whats-new-modal">
         <div className="whats-new-header">
-          <span className="whats-new-icon" aria-hidden="true">🎉</span>
           <div>
             <h2 style={{ margin: 0 }}>
               {t("whats_new_title")} {version ? `(v${version})` : ""}

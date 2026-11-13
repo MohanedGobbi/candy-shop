@@ -1,5 +1,5 @@
 # Every push to main builds the Windows installer and publishes it as a
-# GitHub Release. Installed copies of Candy Shop check these releases and
+# GitHub Release. Installed copies of Mouza Shop check these releases and
 # update themselves (electron-updater).
 name: Build and release
 
