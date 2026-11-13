@@ -45,8 +45,10 @@ jobs:
           node scripts/apps-script-views-test.cjs
 
       # Each run gets a higher version (1.0.<run number>), so the apps see it as new.
-      - name: Set version
-        run: npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+      - name: Set version and changelog
+        run: |
+          npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+          node scripts/generate-changelog.cjs "1.0.${{ github.run_number }}"
 
       - name: Build and publish
         run: npm run release

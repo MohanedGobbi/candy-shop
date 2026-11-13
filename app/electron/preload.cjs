@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld("api", {
   getUpdate: () => ipcRenderer.invoke("update:get"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
   appVersion: () => ipcRenderer.invoke("app:version"),
+  getLastUpdateNotes: () => ipcRenderer.invoke("update:getLastNotes"),
   beep: () => ipcRenderer.invoke("app:beep"),
   onUpdate: (cb) => {
     const h = (_e, s) => cb(s);

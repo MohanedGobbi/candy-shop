@@ -1,0 +1,66 @@
+[
+  {
+    "version": "1.0.99",
+    "date": "2026-11-13",
+    "title_fr": "Mise à jour v1.0.99",
+    "title_ar": "تحديث v1.0.99",
+    "items_fr": [
+      "Alerte sonore et cadre rouge en caisse si produit introuvable",
+      "Correction du focus clavier sous Windows après les fenêtres de confirmation",
+      "Page Alertes : produits en rupture, stocks faibles et crédits",
+      "Avertissement lorsque la quantité dépasse le stock disponible",
+      "Add credit/debt notes page synced to a Credits tab; Sheet links in README",
+      "Candy Shop: register and stock app with auto-updating releases"
+    ],
+    "items_ar": [
+      "تنبيه صوتي وإطار أحمر في شاشة الصندوق عند مسح منتج غير مسجل",
+      "إصلاح استجابة لوحة المفاتيح في ويندوز بعد رسائل التأكيد",
+      "صفحة التنبيهات: نفاد المخزون، والديون المتأخرة",
+      "تحذير عند تجاوز الكمية في السلة للمخزون المتوفر",
+      "Add credit/debt notes page synced to a Credits tab; Sheet links in README",
+      "Candy Shop: register and stock app with auto-updating releases"
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-11-13",
+    "title_fr": "Dernières améliorations et correctifs",
+    "title_ar": "آخر التحسينات والإصلاحات",
+    "items_fr": [
+      "Alerte sonore (bip fort) et cadre rouge en caisse lorsqu'un produit scanné est introuvable",
+      "Raccourci F11 pour valider rapidement la vente en caisse",
+      "Fond de caisse journalier et montant attendu dans l'Analytique (ce PC)",
+      "Navigation facile avec la touche Entrée dans la fiche produit",
+      "Correction du focus clavier sous Windows après les fenêtres de confirmation",
+      "Fenêtre de résumé des nouveautés après chaque mise à jour"
+    ],
+    "items_ar": [
+      "تنبيه صوتي (رنين قوي) وإطار أحمر في شاشة الصندوق عند مسح منتج غير مسجل",
+      "اختصار F11 لتأكيد وإنهاء عملية البيع مباشرة في الصندوق",
+      "تسجيل المبلغ الافتتاحي للصندوق ومطابقة الحسابات في صفحة التحليلات",
+      "التنقل السريع بالزر Entrée بين خانات إضافة وتعديل المنتج",
+      "إصلاح استجابة لوحة المفاتيح في ويندوز بعد رسائل التأكيد",
+      "نافذة توضيحية لجديد البرنامج تظهر تلقائياً بعد كل تحديث"
+    ]
+  },
+  {
+    "version": "1.0.0-prev",
+    "date": "2026-11-12",
+    "title_fr": "Nouvelles fonctionnalités précédentes",
+    "title_ar": "الميزات السابقة",
+    "items_fr": [
+      "Page Alertes : ruptures de stock, articles bientôt épuisés et crédits en retard",
+      "Avertissement visuel quand le panier dépasse le stock restant",
+      "Gestion complète des crédits et dettes clients/fournisseurs",
+      "Synchronisation multi-postes via Google Sheets",
+      "Mises à jour automatiques silencieuses en arrière-plan"
+    ],
+    "items_ar": [
+      "صفحة التنبيهات: نفاد المخزون، المنتجات المشرفة على النفاد، والديون المتأخرة",
+      "تحذير فوري عندما تتجاوز الكمية في السلة المخزون المتبقي",
+      "إدارة متكاملة للديون والائتمان للزبائن والموردين",
+      "مزامنة فورية بين الحواسيب عبر Google Sheets",
+      "تحديثات تلقائية للبرنامج في الخلفية"
+    ]
+  }
+]

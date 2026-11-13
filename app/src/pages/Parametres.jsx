@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function Parametres({ t, settings, saveSettings }) {
+export default function Parametres({ t, settings, saveSettings, appVersion, onOpenWhatsNew }) {
   const [form, setForm] = useState({
     pcName: settings.pcName || "",
     webAppUrl: settings.webAppUrl || "",
@@ -62,6 +62,16 @@ export default function Parametres({ t, settings, saveSettings }) {
             : `${syncResult.reason}${syncResult.detail ? ": " + syncResult.detail : ""}`}
         </div>
       )}
+
+      <hr />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span className="hint">Candy Shop {appVersion ? `v${appVersion}` : ""}</span>
+        {onOpenWhatsNew && (
+          <button className="btn ghost" onClick={onOpenWhatsNew}>
+            🎉 {t("whats_new_button")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

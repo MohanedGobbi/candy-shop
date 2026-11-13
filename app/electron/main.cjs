@@ -70,7 +70,19 @@ function setupAutoUpdate() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true; // installs on next close even if nobody clicks
   autoUpdater.on("update-available", (i) => sendUpdate({ status: "downloading", version: i.version }));
-  autoUpdater.on("update-downloaded", (i) => sendUpdate({ status: "ready", version: i.version }));
+  autoUpdater.on("update-downloaded", (i) => {
+    try {
+      const fs = require("fs");
+      const p = path.join(app.getPath("userData"), "last_update_notes.json");
+      fs.writeFileSync(p, JSON.stringify({
+        version: i.version,
+        releaseNotes: i.releaseNotes,
+        releaseName: i.releaseName,
+        date: Date.now()
+      }));
+    } catch {}
+    sendUpdate({ status: "ready", version: i.version, releaseNotes: i.releaseNotes, releaseName: i.releaseName });
+  });
   autoUpdater.on("error", () => sendUpdate({ status: "idle" })); // offline etc.: try again later
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 10 * 1000);
@@ -78,6 +90,14 @@ function setupAutoUpdate() {
   ipcMain.handle("update:install", () => autoUpdater.quitAndInstall());
 }
 ipcMain.handle("update:get", () => updateState);
+ipcMain.handle("update:getLastNotes", () => {
+  try {
+    const fs = require("fs");
+    const p = path.join(app.getPath("userData"), "last_update_notes.json");
+    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {}
+  return null;
+});
 ipcMain.handle("app:version", () => app.getVersion());
 ipcMain.handle("app:beep", () => {
   if (shell && typeof shell.beep === "function") shell.beep();

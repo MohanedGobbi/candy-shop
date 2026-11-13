@@ -8,6 +8,7 @@ import Parametres from "./pages/Parametres.jsx";
 import Analytique from "./pages/Analytique.jsx";
 import Credits from "./pages/Credits.jsx";
 import Alertes from "./pages/Alertes.jsx";
+import WhatsNewModal from "./WhatsNewModal.jsx";
 
 export default function App() {
   const [settings, setSettings] = useState(null);
@@ -16,6 +17,38 @@ export default function App() {
   const [lastScan, setLastScan] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [update, setUpdate] = useState({ status: "idle" });
+  const [appVersion, setAppVersion] = useState("");
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [customUpdateNotes, setCustomUpdateNotes] = useState(null);
+
+  useEffect(() => {
+    async function checkVersion() {
+      try {
+        const v = await window.api.appVersion();
+        if (v) setAppVersion(v);
+        const lastSeen = localStorage.getItem("app.last_installed_version");
+        if (!lastSeen) {
+          localStorage.setItem("app.last_installed_version", v || "1.0.0");
+        } else if (v && lastSeen !== v) {
+          try {
+            const notes = await window.api.getLastUpdateNotes();
+            if (notes && notes.version === v && notes.releaseNotes) {
+              setCustomUpdateNotes(notes.releaseNotes);
+            }
+          } catch {}
+          setWhatsNewOpen(true);
+        }
+      } catch {}
+    }
+    checkVersion();
+  }, []);
+
+  const closeWhatsNew = () => {
+    setWhatsNewOpen(false);
+    if (appVersion) {
+      localStorage.setItem("app.last_installed_version", appVersion);
+    }
+  };
 
   // Data for the Alertes page and the menu badge: products, last 60 days of
   // sales, credit notes. Reloaded on page change, sync, refresh, and every minute.
@@ -120,6 +153,13 @@ export default function App() {
             <span className="refresh-icon" aria-hidden="true">⟳</span> {t("refresh")}
           </button>
           <span className={"sync-pill " + pill.cls}>{pill.text}</span>
+          <button
+            className="whats-new-pill-btn"
+            onClick={() => setWhatsNewOpen(true)}
+            title={t("whats_new_button")}
+          >
+            ✨ {appVersion ? `v${appVersion}` : t("whats_new_button")}
+          </button>
           <div className="lang-switch">
             <button className={lang === "fr" ? "active" : ""} onClick={() => saveSettings({ lang: "fr" })}>FR</button>
             <button className={lang === "ar" ? "active" : ""} onClick={() => saveSettings({ lang: "ar" })}>AR</button>
@@ -139,8 +179,26 @@ export default function App() {
             reload={() => window.dispatchEvent(new Event("products:reload"))} />
         )}
         {page === "analytique" && <Analytique t={t} active />}
-        {page === "parametres" && <Parametres t={t} settings={settings} saveSettings={saveSettings} />}
+        {page === "parametres" && (
+          <Parametres
+            t={t}
+            settings={settings}
+            saveSettings={saveSettings}
+            appVersion={appVersion}
+            onOpenWhatsNew={() => setWhatsNewOpen(true)}
+          />
+        )}
       </div>
+
+      {whatsNewOpen && (
+        <WhatsNewModal
+          t={t}
+          lang={lang}
+          version={appVersion}
+          customNotes={customUpdateNotes}
+          onClose={closeWhatsNew}
+        />
+      )}
     </div>
   );
 }
