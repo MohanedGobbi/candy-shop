@@ -169,7 +169,16 @@ export default function Caisse({ t, active: pageActive = true }) {
     setCarts((prev) => prev.map((c) => (c.id === activeId ? { ...c, lines: c.lines.filter((l) => l.code !== code) } : c)));
   }
 
-  const total = active.lines.reduce((s, l) => s + l.qty * (l.price || 0), 0);
+  const subtotal = active.lines.reduce((s, l) => s + l.qty * (l.price || 0), 0);
+  // Discount / deal on the whole cart: a fixed amount or a percentage, never below 0.
+  const discountType = active.discountType || "amount";
+  const discountValue = Math.max(0, Number(active.discount) || 0);
+  const discount = Math.min(subtotal, discountType === "pct" ? subtotal * Math.min(discountValue, 100) / 100 : discountValue);
+  const total = Math.round((subtotal - discount) * 100) / 100;
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const showDiscount = discountOpen || discountValue > 0;
+  useEffect(() => { setDiscountOpen(false); }, [activeId]);
+  const setCartField = (patch) => setCarts((prev) => prev.map((c) => (c.id === activeId ? { ...c, ...patch } : c)));
   const given = Number(active.given) || 0;
   const change = given - total;
 
@@ -187,6 +196,7 @@ export default function Caisse({ t, active: pageActive = true }) {
     await window.api.confirmSale({
       lines: active.lines.map((l) => ({ code: l.code, name: l.name, qty: l.qty, price: l.price })),
       total,
+      ...(discount > 0 ? { subtotal, discount: Math.round(discount * 100) / 100, discountLabel: discountType === "pct" ? discountValue + "%" : null } : {}),
       given: active.given === "" ? total : given,
       change: active.given === "" ? 0 : change
     });
@@ -323,11 +333,39 @@ export default function Caisse({ t, active: pageActive = true }) {
           </table>
         </div>
 
+        <div className="caisse-side">
         <div className="card">
           <div className="field">
             <label>{t("cart_total")}</label>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{total.toFixed(2)}</div>
+            <div className="big-total">{total.toFixed(2)}</div>
+            {discount > 0 && (
+              <div className="discount-note">
+                {t("subtotal")} {subtotal.toFixed(2)} · {t("discount")} −{discount.toFixed(2)}
+              </div>
+            )}
           </div>
+          {!showDiscount ? (
+            <button className="btn ghost discount-btn" onClick={() => setDiscountOpen(true)}>{t("add_discount")}</button>
+          ) : (
+            <div className="field">
+              <label>{t("discount")}</label>
+              <div className="discount-row">
+                <input
+                  type="number"
+                  min="0"
+                  autoFocus={discountOpen && !discountValue}
+                  value={active.discount || ""}
+                  placeholder="0"
+                  onChange={(e) => setCartField({ discount: e.target.value })}
+                />
+                <div className="seg">
+                  <button className={discountType === "amount" ? "active" : ""} onClick={() => setCartField({ discountType: "amount" })}>{t("discount_amount")}</button>
+                  <button className={discountType === "pct" ? "active" : ""} onClick={() => setCartField({ discountType: "pct" })}>%</button>
+                </div>
+                <button className="btn ghost" title={t("delete")} onClick={() => { setCartField({ discount: "" }); setDiscountOpen(false); }}>×</button>
+              </div>
+            </div>
+          )}
           <div className="field">
             <label>{t("amount_given")}</label>
             <input
@@ -338,7 +376,7 @@ export default function Caisse({ t, active: pageActive = true }) {
           </div>
           <div className="field">
             <label>{t("change_due")}</label>
-            <div style={{ fontSize: 20, fontWeight: 700, color: change < 0 ? "#b3261e" : "inherit" }}>
+            <div className={"big-change" + (change < 0 && active.given !== "" ? " negative" : "")}>
               {active.given === "" ? "—" : change.toFixed(2)}
             </div>
           </div>
@@ -349,7 +387,64 @@ export default function Caisse({ t, active: pageActive = true }) {
             <button className="btn ghost" onClick={() => deleteCart(activeId)}>{t("cart_delete")}</button>
           </div>
         </div>
+        <RecentSales t={t} />
+        </div>
       </div>
+    </div>
+  );
+}
+
+// Today's latest sales (one block per customer), newest first, with each product's price.
+function RecentSales({ t }) {
+  const [sales, setSales] = useState([]);
+  const [open, setOpen] = useState(null); // id of the sale shown in full
+
+  useEffect(() => {
+    const load = () => {
+      const d = new Date();
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      window.api.salesForDay(start, start + 24 * 3600 * 1000).then((s) =>
+        setSales([...s].sort((a, b) => b.date - a.date).slice(0, 15))
+      );
+    };
+    load();
+    window.addEventListener("products:reload", load); // fired after each sale
+    const unsub = window.api.onSyncStatus((st) => { if (st && st.ok) load(); });
+    return () => { window.removeEventListener("products:reload", load); unsub(); };
+  }, []);
+
+  const time = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="card recent-sales">
+      <h3 className="recent-h">{t("recent_sales")}</h3>
+      {sales.length === 0 && <div className="hint">{t("recent_empty")}</div>}
+      {sales.map((s) => {
+        const full = open === s.id;
+        const lines = full ? s.lines : s.lines.slice(0, 3);
+        return (
+          <div key={s.id} className={"recent-sale" + (s.cancelled ? " cancelled" : "")} onClick={() => setOpen(full ? null : s.id)}>
+            <div className="recent-head">
+              <span className="recent-time">{time(s.date)}</span>
+              {s.cancelled && <span className="recent-tag">{t("recent_cancelled")}</span>}
+              <span className="recent-total">{Number(s.total).toFixed(2)}</span>
+            </div>
+            {s.discount > 0 && (
+              <div className="recent-line recent-discount">
+                <span>{t("discount")}{s.discountLabel ? " " + s.discountLabel : ""}</span>
+                <span>−{Number(s.discount).toFixed(2)}</span>
+              </div>
+            )}
+            {lines.map((l, i) => (
+              <div key={i} className="recent-line">
+                <span>{l.qty} × {l.name}</span>
+                <span>{(Number(l.price) || 0).toFixed(2)}</span>
+              </div>
+            ))}
+            {!full && s.lines.length > 3 && <div className="recent-more">+{s.lines.length - 3}</div>}
+          </div>
+        );
+      })}
     </div>
   );
 }
