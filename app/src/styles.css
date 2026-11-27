@@ -94,7 +94,10 @@ tr.cancelled td { opacity: .5; text-decoration: line-through; }
 
 .caisse-layout { display: grid; grid-template-columns: 1fr 400px; gap: 16px; align-items: start; }
 .caisse-side { display: grid; gap: 12px; }
-.big-total { font-size: 76px; font-weight: 800; line-height: 1.05; color: #0f8a4f; font-variant-numeric: tabular-nums; }
+.big-total {
+  font-size: 68px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums;
+  background: #121715; color: #22d37b; padding: 10px 14px; border-radius: 10px;
+}
 .big-change { font-size: 60px; font-weight: 800; line-height: 1.05; color: #0f8a4f; font-variant-numeric: tabular-nums; }
 .big-change.negative { color: var(--danger); }
 .discount-note { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
